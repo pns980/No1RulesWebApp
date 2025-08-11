@@ -9,19 +9,25 @@
     h1 { font-size: 1.5em; }
     textarea { width: 100%; height: 120px; margin-bottom: 10px; padding: 10px; }
     button { padding: 10px 20px; cursor: pointer; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
     .response { margin-top: 20px; padding: 15px; background: #f8f8f8; border-radius: 8px; }
+    .error { background: #ffe6e6; border: 1px solid #ff9999; color: #cc0000; }
+    .success { background: #e6ffe6; border: 1px solid #99ff99; color: #006600; }
     .rule { margin-bottom: 10px; }
     .rule-title { font-weight: bold; }
+    .debug { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+    .debug pre { background: #f5f5f5; padding: 10px; overflow-x: auto; font-size: 12px; }
+    .loading { display: inline-block; margin-left: 10px; }
   </style>
 </head>
 <body>
   <h1>Workplace Scenario AI Helper</h1>
   <p>Type in your workplace scenario below and get an AI-generated, rule-based reply.</p>
-
   <textarea id="scenario" placeholder="Describe your scenario here..."></textarea>
   <br/>
-  <button onclick="submitScenario()">Get AI Reply</button>
-
+  <button id="submitBtn" onclick="submitScenario()">Get AI Reply</button>
+  <span id="loading" class="loading" style="display:none;">Processing...</span>
+  
   <div id="output" class="response" style="display:none;">
     <h2>AI Reply</h2>
     <p><strong>Tone Applied:</strong> <span id="tone"></span></p>
@@ -29,36 +35,146 @@
     <h3>Rules Applied</h3>
     <div id="rules"></div>
   </div>
+  
+  <div id="debug" class="debug" style="display:none;">
+    <h3>Debug Information</h3>
+    <p><strong>Request URL:</strong> <span id="debugUrl"></span></p>
+    <p><strong>Response Status:</strong> <span id="debugStatus"></span></p>
+    <p><strong>Response Headers:</strong></p>
+    <pre id="debugHeaders"></pre>
+    <p><strong>Raw Response:</strong></p>
+    <pre id="debugResponse"></pre>
+  </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxeKN4BVem98aaEkmkxXmJaVhiR7j3BsvfqM-_piFA6RZJhuy9FKCZjoohOl80Ha1UR-g/exec";
-
+    const API_URL = "https://script.google.com/macros/s/AKfycbzENMJUDzUEJGJMPH1pfdrppx98QY2MR0_DaiYe4pOWS01akJS70RVV-wzdz-A9m-1TMQ/exec";
+    
     async function submitScenario() {
       const scenario = document.getElementById("scenario").value.trim();
       if (!scenario) {
         alert("Please enter a scenario first.");
         return;
       }
+
+      // Reset UI
       document.getElementById("output").style.display = "none";
+      document.getElementById("debug").style.display = "none";
+      document.getElementById("loading").style.display = "inline";
+      document.getElementById("submitBtn").disabled = true;
+      
+      // Debug info
+      document.getElementById("debugUrl").innerText = API_URL;
+      
       try {
+        console.log("Sending request to:", API_URL);
+        console.log("Payload:", { scenario });
+        
         const res = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scenario })
+          headers: { 
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ scenario }),
+          mode: 'cors' // Explicitly set CORS mode
         });
+        
+        // Debug response info
+        document.getElementById("debugStatus").innerText = `${res.status} ${res.statusText}`;
+        
+        // Get headers for debugging
+        const headerText = Array.from(res.headers.entries())
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n');
+        document.getElementById("debugHeaders").textContent = headerText || "No headers available";
+        
+        console.log("Response status:", res.status);
+        console.log("Response headers:", headerText);
+        
         if (!res.ok) {
-          // Check for a non-200 status code
-          throw new Error(`Server returned status: ${res.status}`);
+          throw new Error(`HTTP error! status: ${res.status}`);
         }
-        const data = await res.json();
-        console.log(data);
-        // ... (rest of your display logic) ...
+        
+        const rawText = await res.text();
+        document.getElementById("debugResponse").textContent = rawText;
+        console.log("Raw response:", rawText);
+        
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (parseError) {
+          console.error("JSON parsing error:", parseError);
+          throw new Error(`Invalid JSON response: ${rawText.substring(0, 200)}...`);
+        }
+        
+        console.log("Parsed data:", data);
+        
+        // Check if the response has the expected structure
+        if (!data || typeof data !== 'object') {
+          throw new Error("Response is not a valid object");
+        }
+        
+        if (data.error) {
+          throw new Error(`Server error: ${data.error}`);
+        }
+        
+        // Update UI with successful response
+        document.getElementById("tone").innerText = data.tone_applied || "Not specified";
+        document.getElementById("reply").innerText = data.reply || "No reply received";
+        
+        const rulesDiv = document.getElementById("rules");
+        rulesDiv.innerHTML = "";
+        
+        if (data.rules_used && Array.isArray(data.rules_used)) {
+          data.rules_used.forEach(rule => {
+            const div = document.createElement("div");
+            div.className = "rule";
+            div.innerHTML = `<div class="rule-title">${rule.title || 'Untitled Rule'}</div><div>${rule.reason || 'No reason provided'}</div>`;
+            rulesDiv.appendChild(div);
+          });
+        } else {
+          rulesDiv.innerHTML = "<p>No rules information available</p>";
+        }
+        
         document.getElementById("output").style.display = "block";
+        document.getElementById("output").className = "response success";
+        
       } catch (error) {
-        console.error("Fetch error:", error);
-        alert("An error occurred. Please check the console for details.");
+        console.error("Error:", error);
+        
+        // Show error in UI
+        document.getElementById("output").innerHTML = `
+          <h2>Error</h2>
+          <p><strong>Error Message:</strong> ${error.message}</p>
+          <p>Please check the debug information below and browser console for more details.</p>
+        `;
+        document.getElementById("output").className = "response error";
+        document.getElementById("output").style.display = "block";
+        
+        // Always show debug info on error
+        document.getElementById("debug").style.display = "block";
+      } finally {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("submitBtn").disabled = false;
       }
     }
+    
+    // Optional: Test the endpoint on page load
+    window.addEventListener('load', function() {
+      console.log("Page loaded. API endpoint:", API_URL);
+      
+      // Test if the endpoint is reachable with a simple GET request
+      fetch(API_URL, { method: 'GET' })
+        .then(res => {
+          console.log("GET test response status:", res.status);
+          return res.text();
+        })
+        .then(text => {
+          console.log("GET test response:", text.substring(0, 200));
+        })
+        .catch(err => {
+          console.log("GET test failed (this might be expected if your script only accepts POST):", err.message);
+        });
+    });
   </script>
 </body>
 </html>
