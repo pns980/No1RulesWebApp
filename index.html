@@ -46,8 +46,8 @@
     <pre id="debugResponse"></pre>
   </div>
 
-  <script> 
-    const API_URL = "https://script.google.com/macros/s/AKfycbwL8LFp9GDhqRu7sODi5SNHPjtUcAcpx8K21sIBhVofH6z03OwcjMegoJ4p9siNxOzZ/exec";
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzENMJUDzUEJGJMPH1pfdrppx98QY2MR0_DaiYe4pOWS01akJS70RVV-wzdz-A9m-1TMQ/exec";
     
     async function submitScenario() {
       const scenario = document.getElementById("scenario").value.trim();
@@ -113,19 +113,32 @@
           throw new Error("Response is not a valid object");
         }
         
-        if (data.error) {
-          throw new Error(`Server error: ${data.error}`);
+        // Handle the new response format with success wrapper
+        if (data.success === false) {
+          throw new Error(`Server error: ${data.error || 'Unknown error'}`);
+        }
+        
+        // Handle both old format (direct fields) and new format (with success wrapper)
+        let responseData;
+        if (data.success === true) {
+          // New format: { success: true, tone_applied: ..., reply: ..., rules_used: ... }
+          responseData = data;
+        } else if (data.tone_applied || data.reply || data.rules_used) {
+          // Old format: { tone_applied: ..., reply: ..., rules_used: ... }
+          responseData = data;
+        } else {
+          throw new Error("Response does not contain expected data structure");
         }
         
         // Update UI with successful response
-        document.getElementById("tone").innerText = data.tone_applied || "Not specified";
-        document.getElementById("reply").innerText = data.reply || "No reply received";
+        document.getElementById("tone").innerText = responseData.tone_applied || "Not specified";
+        document.getElementById("reply").innerText = responseData.reply || "No reply received";
         
         const rulesDiv = document.getElementById("rules");
         rulesDiv.innerHTML = "";
         
-        if (data.rules_used && Array.isArray(data.rules_used)) {
-          data.rules_used.forEach(rule => {
+        if (responseData.rules_used && Array.isArray(responseData.rules_used)) {
+          responseData.rules_used.forEach(rule => {
             const div = document.createElement("div");
             div.className = "rule";
             div.innerHTML = `<div class="rule-title">${rule.title || 'Untitled Rule'}</div><div>${rule.reason || 'No reason provided'}</div>`;
