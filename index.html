@@ -70,7 +70,7 @@
         console.log("Payload:", { scenario });
         
         // Try GET request first as a fallback for CORS issues
-        const useGetFallback = false; // Set to true if POST continues to fail
+        const useGetFallback = true; // Set to true if POST continues to fail
         
         let res;
         if (useGetFallback) {
