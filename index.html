@@ -69,14 +69,28 @@
         console.log("Sending request to:", API_URL);
         console.log("Payload:", { scenario });
         
-        const res = await fetch(API_URL, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ scenario }),
-          mode: 'cors' // Explicitly set CORS mode
-        });
+        // Try GET request first as a fallback for CORS issues
+        const useGetFallback = false; // Set to true if POST continues to fail
+        
+        let res;
+        if (useGetFallback) {
+          // GET request fallback (encode scenario in URL)
+          const encodedScenario = encodeURIComponent(scenario);
+          res = await fetch(`${API_URL}?scenario=${encodedScenario}`, {
+            method: "GET",
+            mode: 'cors'
+          });
+        } else {
+          // Standard POST request
+          res = await fetch(API_URL, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ scenario }),
+            mode: 'cors' // Explicitly set CORS mode
+          });
+        }
         
         // Debug response info
         document.getElementById("debugStatus").innerText = `${res.status} ${res.statusText}`;
