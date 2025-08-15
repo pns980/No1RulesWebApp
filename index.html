@@ -203,24 +203,6 @@
       font-size: 0.8em;
     }
     
-    .tone-section {
-      background: rgba(255, 255, 255, 0.7);
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-    
-    .tone-label {
-      font-weight: 600;
-      color: #666;
-      margin-bottom: 5px;
-    }
-    
-    .tone-value {
-      color: #4facfe;
-      font-weight: 500;
-    }
-    
     .reply-section {
       background: white;
       padding: 20px;
@@ -398,11 +380,6 @@
       
       <div id="output" class="response">
         <h2 id="responseTitle"><i class="fas fa-lightbulb"></i> AI Guidance</h2>
-        
-        <div class="tone-section">
-          <div class="tone-label">Approach Used:</div>
-          <div class="tone-value" id="tone">Professional guidance</div>
-        </div>
         
         <div class="reply-section">
           <div id="reply">Your guidance will appear here...</div>
@@ -587,7 +564,7 @@
         }
         
         // Update UI with successful response
-        document.getElementById("tone").innerText = responseData.tone_applied || "Not specified";
+        // document.getElementById("tone").innerText = responseData.tone_applied || "Not specified";
         document.getElementById("reply").innerText = responseData.reply || "No reply received";
         
         const rulesDiv = document.getElementById("rules");
