@@ -4,50 +4,465 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Workplace Scenario AI Helper</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; max-width: 700px; }
-    h1 { font-size: 1.5em; }
-    textarea { width: 100%; height: 120px; margin-bottom: 10px; padding: 10px; }
-    button { padding: 10px 20px; cursor: pointer; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    .response { margin-top: 20px; padding: 15px; background: #f8f8f8; border-radius: 8px; }
-    .error { background: #ffe6e6; border: 1px solid #ff9999; color: #cc0000; }
-    .success { background: #e6ffe6; border: 1px solid #99ff99; color: #006600; }
-    .rule { margin-bottom: 10px; }
-    .rule-title { font-weight: bold; }
-    .debug { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
-    .debug pre { background: #f5f5f5; padding: 10px; overflow-x: auto; font-size: 12px; }
-    .loading { display: inline-block; margin-left: 10px; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      padding: 40px;
+      text-align: center;
+      color: white;
+    }
+    
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      font-size: 1.1em;
+      opacity: 0.9;
+    }
+    
+    .main-content {
+      padding: 40px;
+    }
+    
+    .input-section {
+      margin-bottom: 30px;
+    }
+    
+    .input-label {
+      display: block;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #555;
+      font-size: 1.1em;
+    }
+    
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 20px;
+      border: 2px solid #e0e6ed;
+      border-radius: 15px;
+      font-size: 16px;
+      font-family: inherit;
+      resize: vertical;
+      transition: all 0.3s ease;
+      background: #f8fafc;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #4facfe;
+      background: white;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(79, 172, 254, 0.2);
+    }
+    
+    .char-counter {
+      position: absolute;
+      bottom: 10px;
+      right: 15px;
+      font-size: 12px;
+      color: #888;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    
+    .submit-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .submit-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      min-width: 200px;
+    }
+    
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+    }
+    
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .submit-btn i {
+      margin-right: 8px;
+    }
+    
+    .loading {
+      display: none;
+      margin-left: 15px;
+    }
+    
+    .loading.active {
+      display: inline-block;
+    }
+    
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #4facfe;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .response {
+      margin-top: 30px;
+      padding: 30px;
+      border-radius: 15px;
+      display: none;
+      animation: slideUp 0.5s ease;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .response.success {
+      background: linear-gradient(135deg, #d4ffd4 0%, #e8f8e8 100%);
+      border-left: 5px solid #4caf50;
+    }
+    
+    .response.error {
+      background: linear-gradient(135deg, #ffe6e6 0%, #fff0f0 100%);
+      border-left: 5px solid #f44336;
+    }
+    
+    .response h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.8em;
+      display: flex;
+      align-items: center;
+    }
+    
+    .response h2 i {
+      margin-right: 10px;
+      font-size: 0.8em;
+    }
+    
+    .tone-section {
+      background: rgba(255, 255, 255, 0.7);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .tone-label {
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    .tone-value {
+      color: #4facfe;
+      font-weight: 500;
+    }
+    
+    .reply-section {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      line-height: 1.6;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .rules-section h3 {
+      color: #555;
+      margin-bottom: 15px;
+      font-size: 1.4em;
+      display: flex;
+      align-items: center;
+    }
+    
+    .rules-section h3 i {
+      margin-right: 8px;
+    }
+    
+    .rule {
+      background: rgba(255, 255, 255, 0.8);
+      margin-bottom: 15px;
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 4px solid #4facfe;
+      transition: transform 0.2s ease;
+    }
+    
+    .rule:hover {
+      transform: translateX(5px);
+    }
+    
+    .rule-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 1.1em;
+    }
+    
+    .rule-reason {
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    .debug {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border: 1px solid #dee2e6;
+      display: none;
+    }
+    
+    .debug.active {
+      display: block;
+    }
+    
+    .debug h3 {
+      color: #495057;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+    }
+    
+    .debug-item {
+      margin-bottom: 10px;
+    }
+    
+    .debug-label {
+      font-weight: 600;
+      color: #6c757d;
+    }
+    
+    .debug pre {
+      background: #ffffff;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+      border: 1px solid #e9ecef;
+      margin-top: 5px;
+    }
+    
+    .toggle-debug {
+      background: transparent;
+      border: 1px solid #dee2e6;
+      color: #6c757d;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 15px;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-debug:hover {
+      background: #f8f9fa;
+      border-color: #adb5bd;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 30px 20px;
+      }
+      
+      .header h1 {
+        font-size: 2em;
+      }
+      
+      .main-content {
+        padding: 20px;
+      }
+      
+      .submit-btn {
+        padding: 12px 30px;
+        font-size: 14px;
+      }
+    }
+    
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    
+    /* Focus styles for keyboard navigation */
+    textarea:focus,
+    .submit-btn:focus,
+    .toggle-debug:focus {
+      outline: 2px solid #4facfe;
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>
-  <h1>Workplace Scenario AI Helper</h1>
-  <p>Type in your workplace scenario below and get an AI-generated, rule-based reply.</p>
-  <textarea id="scenario" placeholder="Describe your scenario here..."></textarea>
-  <br/>
-  <button id="submitBtn" onclick="submitScenario()">Get AI Reply</button>
-  <span id="loading" class="loading" style="display:none;">Processing...</span>
-  
-  <div id="output" class="response" style="display:none;">
-    <h2>AI Reply</h2>
-    <p><strong>Tone Applied:</strong> <span id="tone"></span></p>
-    <p id="reply"></p>
-    <h3>Rules Applied</h3>
-    <div id="rules"></div>
-  </div>
-  
-  <div id="debug" class="debug" style="display:none;">
-    <h3>Debug Information</h3>
-    <p><strong>Request URL:</strong> <span id="debugUrl"></span></p>
-    <p><strong>Response Status:</strong> <span id="debugStatus"></span></p>
-    <p><strong>Response Headers:</strong></p>
-    <pre id="debugHeaders"></pre>
-    <p><strong>Raw Response:</strong></p>
-    <pre id="debugResponse"></pre>
+  <div class="container">
+    <div class="header">
+      <h1><i class="fas fa-brain"></i> Workplace Scenario AI Helper</h1>
+      <p>Get intelligent, rule-based guidance for your workplace challenges</p>
+    </div>
+    
+    <div class="main-content">
+      <div class="input-section">
+        <label for="scenario" class="input-label">
+          <i class="fas fa-pencil-alt"></i> Describe your workplace scenario
+        </label>
+        <div class="input-wrapper">
+          <textarea 
+            id="scenario" 
+            placeholder="Example: I have a team member who consistently misses deadlines and it's affecting our project deliverables. How should I address this situation professionally?"
+            oninput="updateCharCounter()"
+          ></textarea>
+          <div class="char-counter" id="charCounter">0 characters</div>
+        </div>
+      </div>
+      
+      <div class="submit-section">
+        <button id="submitBtn" class="submit-btn" onclick="submitScenario()">
+          <i class="fas fa-magic"></i> Get AI Guidance
+        </button>
+        <div id="loading" class="loading">
+          <div class="spinner"></div>
+          <span style="margin-left: 10px;">Analyzing scenario...</span>
+        </div>
+      </div>
+      
+      <div id="output" class="response">
+        <h2 id="responseTitle"><i class="fas fa-lightbulb"></i> AI Guidance</h2>
+        
+        <div class="tone-section">
+          <div class="tone-label">Approach Used:</div>
+          <div class="tone-value" id="tone">Professional guidance</div>
+        </div>
+        
+        <div class="reply-section">
+          <div id="reply">Your guidance will appear here...</div>
+        </div>
+        
+        <div class="rules-section">
+          <h3><i class="fas fa-list-check"></i> Applied Guidelines</h3>
+          <div id="rules">
+            <p>No guidelines information available</p>
+          </div>
+        </div>
+        
+        <button class="toggle-debug" onclick="toggleDebug()">
+          <i class="fas fa-bug"></i> Toggle Debug Info
+        </button>
+      </div>
+      
+      <div id="debug" class="debug">
+        <h3><i class="fas fa-terminal"></i> Debug Information</h3>
+        <div class="debug-item">
+          <span class="debug-label">Request URL:</span> <span id="debugUrl"></span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">Response Status:</span> <span id="debugStatus"></span>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">Response Headers:</span>
+          <pre id="debugHeaders"></pre>
+        </div>
+        <div class="debug-item">
+          <span class="debug-label">Raw Response:</span>
+          <pre id="debugResponse"></pre>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <script>
+  <script> 
     const API_URL = "https://script.google.com/macros/s/AKfycbxICOba7YwKgHbvLnATi4ilva6-cVZbGQflSW48lZ3jlwxMocA3NnIMTFDhc65g1hcJ4w/exec";
+    
+    function updateCharCounter() {
+      const textarea = document.getElementById("scenario");
+      const counter = document.getElementById("charCounter");
+      const length = textarea.value.length;
+      counter.textContent = `${length} characters`;
+      
+      // Change color based on length
+      if (length > 1000) {
+        counter.style.color = '#f44336';
+      } else if (length > 500) {
+        counter.style.color = '#ff9800';
+      } else {
+        counter.style.color = '#888';
+      }
+    }
+    
+    function toggleDebug() {
+      const debug = document.getElementById("debug");
+      debug.classList.toggle("active");
+    }
     
     async function submitScenario() {
       const scenario = document.getElementById("scenario").value.trim();
@@ -57,10 +472,16 @@
       }
 
       // Reset UI
-      document.getElementById("output").style.display = "none";
-      document.getElementById("debug").style.display = "none";
-      document.getElementById("loading").style.display = "inline";
-      document.getElementById("submitBtn").disabled = true;
+      const output = document.getElementById("output");
+      const loading = document.getElementById("loading");
+      const submitBtn = document.getElementById("submitBtn");
+      const debug = document.getElementById("debug");
+      
+      output.style.display = "none";
+      debug.classList.remove("active");
+      loading.classList.add("active");
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-hourglass-half"></i> Processing...';
       
       // Debug info
       document.getElementById("debugUrl").innerText = API_URL;
@@ -70,7 +491,7 @@
         console.log("Payload:", { scenario });
         
         // Try GET request first as a fallback for CORS issues
-        const useGetFallback = true; // Set to true if POST continues to fail
+        const useGetFallback = true; // Using GET by default for better CORS compatibility
         
         let res;
         if (useGetFallback) {
@@ -122,11 +543,6 @@
         
         console.log("Parsed data:", data);
         
-        // Check if the response has the expected structure
-        if (!data || typeof data !== 'object') {
-          throw new Error("Response is not a valid object");
-        }
-        
         // Handle the new response format with success wrapper
         if (data.success === false) {
           throw new Error(`Server error: ${data.error || 'Unknown error'}`);
@@ -151,37 +567,44 @@
         const rulesDiv = document.getElementById("rules");
         rulesDiv.innerHTML = "";
         
-        if (responseData.rules_used && Array.isArray(responseData.rules_used)) {
+        if (responseData.rules_used && Array.isArray(responseData.rules_used) && responseData.rules_used.length > 0) {
           responseData.rules_used.forEach(rule => {
             const div = document.createElement("div");
             div.className = "rule";
-            div.innerHTML = `<div class="rule-title">${rule.title || 'Untitled Rule'}</div><div>${rule.reason || 'No reason provided'}</div>`;
+            div.innerHTML = `
+              <div class="rule-title">${rule.title || 'Untitled Rule'}</div>
+              <div class="rule-reason">${rule.reason || 'No reason provided'}</div>
+            `;
             rulesDiv.appendChild(div);
           });
         } else {
-          rulesDiv.innerHTML = "<p>No rules information available</p>";
+          rulesDiv.innerHTML = "<p>No specific guidelines were applied to this scenario.</p>";
         }
         
-        document.getElementById("output").style.display = "block";
-        document.getElementById("output").className = "response success";
+        output.className = "response success";
+        output.style.display = "block";
+        document.getElementById("responseTitle").innerHTML = '<i class="fas fa-check-circle"></i> AI Guidance';
         
       } catch (error) {
         console.error("Error:", error);
         
         // Show error in UI
         document.getElementById("output").innerHTML = `
-          <h2>Error</h2>
-          <p><strong>Error Message:</strong> ${error.message}</p>
-          <p>Please check the debug information below and browser console for more details.</p>
+          <h2><i class="fas fa-exclamation-triangle"></i> Error</h2>
+          <div class="reply-section">
+            <p><strong>Error Message:</strong> ${error.message}</p>
+            <p>Please check the debug information below and browser console for more details.</p>
+          </div>
         `;
         document.getElementById("output").className = "response error";
         document.getElementById("output").style.display = "block";
         
-        // Always show debug info on error
-        document.getElementById("debug").style.display = "block";
+        // Show debug info on error
+        document.getElementById("debug").classList.add("active");
       } finally {
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("submitBtn").disabled = false;
+        loading.classList.remove("active");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-magic"></i> Get AI Guidance';
       }
     }
     
@@ -201,6 +624,14 @@
         .catch(err => {
           console.log("GET test failed (this might be expected if your script only accepts POST):", err.message);
         });
+    });
+    
+    // Allow Enter key to submit (with Shift+Enter for new lines)
+    document.getElementById('scenario').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitScenario();
+      }
     });
   </script>
 </body>
