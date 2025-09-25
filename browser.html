@@ -267,6 +267,24 @@
             transform: translateY(-2px);
         }
         
+        .loading {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            padding: 60px;
+            font-size: 1.2rem;
+        }
+        
+        .loading-spinner {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 768px) {
             h1 {
                 font-size: 2.5rem;
@@ -383,107 +401,120 @@
             }
         ];
 
-        // Test function to verify JSONP is working
-        function testJSONP() {
-            console.log('🧪 Testing JSONP connection...');
-            loadDataWithJSONP()
-                .then(data => {
-                    console.log('✅ JSONP test successful:', data);
-                    return data;
-                })
-                .catch(error => {
-                    console.error('❌ JSONP test failed:', error);
-                    throw error;
-                });
-        }
-
-        function loadData() {
-            console.log('🚀 Starting with sample data due to CSP restrictions');
-            
-            // Use fallback data immediately - no external connections due to CSP
-            rulesData = fallbackData;
-            
-            document.getElementById('stats').innerHTML = `
-                <div style="background: rgba(54, 162, 235, 0.2); color: rgba(255,255,255,0.95); padding: 20px; border-radius: 15px; margin: 15px 0; text-align: center; line-height: 1.5;">
-                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">
-                        📊 Ready to Import Your Data!
-                    </div>
-                    <div style="font-size: 13px; opacity: 0.9;">
-                        Currently showing ${fallbackData.length} sample rules.<br>
-                        Click "📊 Import Your Data" below to load all 100 rules from your Google Sheet.
-                    </div>
+        function showLoading() {
+            document.getElementById('rulesGrid').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner">📊</div>
+                    <div>Loading your rules from Google Sheets...</div>
+                    <div style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">This may take a few seconds</div>
                 </div>
             `;
-            
-            filteredRules = [...rulesData];
-            init();
         }
 
         function loadDataWithJSONP() {
             return new Promise((resolve, reject) => {
-                console.log('📡 Attempting JSONP request to:', SCRIPT_URL);
-                console.log('⚠️  Note: This may fail due to Content Security Policy restrictions in Claude.ai');
+                console.log('📡 Loading data via JSONP from:', SCRIPT_URL);
                 
                 const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
                 const timestamp = Date.now();
-                console.log('🎯 Using callback name:', callbackName);
                 
-                const script = document.createElement('script');
                 const timeoutId = setTimeout(() => {
-                    console.error('⏰ JSONP request timeout - likely blocked by CSP');
+                    console.error('⏰ JSONP request timeout');
                     cleanup();
-                    reject(new Error('JSONP request timeout - Content Security Policy may be blocking external scripts'));
-                }, 10000); // Shorter timeout since CSP blocks are immediate
+                    reject(new Error('Request timeout - please check your internet connection'));
+                }, 15000);
                 
-                // Define the callback function
+                // Define the global callback function
                 window[callbackName] = function(data) {
-                    console.log('✅ JSONP callback received data successfully!');
-                    console.log('📊 Data type:', typeof data, 'Length:', Array.isArray(data) ? data.length : 'N/A');
+                    console.log('✅ JSONP callback received data:', data);
                     cleanup();
                     resolve(data);
                 };
                 
                 function cleanup() {
                     clearTimeout(timeoutId);
-                    if (script.parentNode) {
+                    if (script && script.parentNode) {
                         script.parentNode.removeChild(script);
                     }
-                    delete window[callbackName];
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                    }
                 }
                 
+                const script = document.createElement('script');
+                
                 script.onerror = function(error) {
-                    console.error('❌ JSONP script loading failed - likely CSP restriction:', error);
+                    console.error('❌ JSONP script loading failed:', error);
                     cleanup();
-                    reject(new Error('JSONP script loading failed - Content Security Policy blocks external scripts'));
+                    reject(new Error('Failed to load data from Google Sheets'));
                 };
                 
                 script.onload = function() {
-                    console.log('📜 JSONP script loaded successfully (waiting for callback...)');
+                    console.log('📜 JSONP script loaded successfully');
+                    // Callback should fire automatically, but add a backup timeout
+                    setTimeout(() => {
+                        if (window[callbackName]) {
+                            console.warn('⚠️  Callback not fired, timing out...');
+                            cleanup();
+                            reject(new Error('Callback not received from server'));
+                        }
+                    }, 10000);
                 };
                 
-                // Add cache busting and callback parameters
                 const scriptUrl = `${SCRIPT_URL}?callback=${callbackName}&_=${timestamp}`;
-                console.log('🔗 Attempting to load script from:', scriptUrl);
+                console.log('🔗 Loading script:', scriptUrl);
                 
-                try {
-                    script.src = scriptUrl;
-                    document.head.appendChild(script);
-                    console.log('📝 Script element added to DOM');
-                } catch (cspError) {
-                    console.error('❌ CSP blocked script loading:', cspError);
-                    cleanup();
-                    reject(new Error('Content Security Policy blocked script loading'));
-                }
+                script.src = scriptUrl;
+                document.head.appendChild(script);
             });
         }
 
-        function showLoading() {
-            document.getElementById('rulesGrid').innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: rgba(255,255,255,0.8);">
-                    <div style="font-size: 2rem; margin-bottom: 1rem;">📊</div>
-                    <div style="font-size: 1.2rem;">Loading rules...</div>
-                </div>
-            `;
+        async function loadData() {
+            console.log('🚀 Starting data load process');
+            showLoading();
+            
+            try {
+                const data = await loadDataWithJSONP();
+                console.log('📊 Received data:', data);
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    // Validate data structure
+                    const requiredFields = ['title', 'fullDescription', 'area', 'discipline', 'skill'];
+                    const firstRule = data[0];
+                    const hasRequiredFields = requiredFields.every(field => field in firstRule);
+                    
+                    if (!hasRequiredFields) {
+                        throw new Error(`Missing required fields in data. Expected: ${requiredFields.join(', ')}`);
+                    }
+
+                    rulesData = data;
+                    console.log(`✅ Successfully loaded ${data.length} rules`);
+                    
+                    document.getElementById('stats').innerHTML = `
+                        <div style="background: rgba(40, 167, 69, 0.2); color: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin: 15px 0; text-align: center;">
+                            ✅ Successfully loaded ${data.length} rules from Google Sheets!
+                        </div>
+                    `;
+                } else {
+                    throw new Error('No data received or invalid data format');
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to load data:', error);
+                console.log('🔄 Falling back to sample data');
+                
+                rulesData = fallbackData;
+                
+                document.getElementById('stats').innerHTML = `
+                    <div style="background: rgba(255, 193, 7, 0.2); color: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin: 15px 0; text-align: center;">
+                        ⚠️ Could not load from Google Sheets: ${error.message}<br>
+                        <small style="opacity: 0.8;">Showing ${fallbackData.length} sample rules instead.</small>
+                    </div>
+                `;
+            }
+            
+            filteredRules = [...rulesData];
+            init();
         }
 
         function init() {
@@ -494,21 +525,23 @@
         }
 
         function createFilters() {
-            const areas = ['all', 'self', 'people', 'business'];
+            // Get unique values from actual data
+            const areas = ['all', ...new Set(rulesData.map(rule => rule.area.toLowerCase()))];
+            const disciplines = ['all', ...new Set(rulesData.map(rule => rule.discipline.toLowerCase()))];
+            const skills = ['all', ...new Set(rulesData.map(rule => rule.skill.toLowerCase()))];
+
             document.getElementById('areaFilters').innerHTML = areas.map(area => 
                 `<button class="filter-btn ${area === 'all' ? 'active' : ''}" onclick="filterByArea('${area}')">
                     ${area === 'all' ? 'All Areas' : area}
                 </button>`
             ).join('');
 
-            const disciplines = ['all', 'perception', 'action', 'will'];
             document.getElementById('disciplineFilters').innerHTML = disciplines.map(discipline => 
                 `<button class="filter-btn ${discipline === 'all' ? 'active' : ''}" onclick="filterByDiscipline('${discipline}')">
                     ${discipline === 'all' ? 'All Disciplines' : discipline}
                 </button>`
             ).join('');
 
-            const skills = ['all', 'analytical skills', 'communication', 'empathy', 'leadership', 'teamwork', 'self-management', 'work ethic'];
             document.getElementById('skillFilters').innerHTML = skills.map(skill => 
                 `<button class="filter-btn ${skill === 'all' ? 'active' : ''}" onclick="filterBySkill('${skill}')">
                     ${skill === 'all' ? 'All Skills' : skill}
@@ -628,8 +661,13 @@
         }
 
         function updateStats() {
-            document.getElementById('stats').textContent = 
-                `Showing ${filteredRules.length} of ${rulesData.length} rules`;
+            const currentStats = document.getElementById('stats');
+            const statsText = `Showing ${filteredRules.length} of ${rulesData.length} rules`;
+            
+            // Only update if it's not showing the success/error message
+            if (!currentStats.innerHTML.includes('✅') && !currentStats.innerHTML.includes('⚠️')) {
+                currentStats.textContent = statsText;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', loadData);
