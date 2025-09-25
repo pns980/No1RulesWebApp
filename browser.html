@@ -357,7 +357,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6qXXzzJj-5ulyAqOBxL33j8CyUc9CiVxl3sD15ItgbHRhF-z5FLFxsY7Ue8b1Gd2t/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwG-29xM9l9T3qjeXleQkeNa_zLx73UPD3ZQtxbXyljWJKI79q8S0ccrhpyB-nzyyI/exec';
         
         let rulesData = [];
         let filteredRules = [];
@@ -470,39 +470,17 @@
         }
 
         async function loadData() {
-            console.log('🚀 Starting data load process');
             showLoading();
             
             try {
                 const data = await loadDataWithJSONP();
-                console.log('📊 Received data:', data);
                 
                 if (Array.isArray(data) && data.length > 0) {
-                    // Debug: Log the first few items to see the actual structure
-                    console.log('🔍 First 3 data items:', data.slice(0, 3));
-                    console.log('🔑 Keys in first item:', Object.keys(data[0]));
-                    
-                    // Validate data structure
-                    const requiredFields = ['title', 'fullDescription', 'area', 'discipline', 'skill'];
-                    const firstRule = data[0];
-                    const hasRequiredFields = requiredFields.every(field => field in firstRule);
-                    
-                    if (!hasRequiredFields) {
-                        console.error('❌ Missing fields. Available fields:', Object.keys(firstRule));
-                        throw new Error(`Missing required fields in data. Expected: ${requiredFields.join(', ')}`);
-                    }
-
                     rulesData = data;
-                    console.log(`✅ Successfully loaded ${data.length} rules`);
-                    
-                    // Debug: Show some sample values for each field
-                    console.log('📋 Sample areas:', data.slice(0, 5).map(r => r.area));
-                    console.log('📋 Sample disciplines:', data.slice(0, 5).map(r => r.discipline));
-                    console.log('📋 Sample skills:', data.slice(0, 5).map(r => r.skill));
                     
                     document.getElementById('stats').innerHTML = `
                         <div style="background: rgba(40, 167, 69, 0.2); color: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin: 15px 0; text-align: center;">
-                            ✅ Successfully loaded ${data.length} rules from Google Sheets!
+                            Successfully loaded ${data.length} rules from Google Sheets!
                         </div>
                     `;
                 } else {
@@ -510,14 +488,11 @@
                 }
                 
             } catch (error) {
-                console.error('❌ Failed to load data:', error);
-                console.log('🔄 Falling back to sample data');
-                
                 rulesData = fallbackData;
                 
                 document.getElementById('stats').innerHTML = `
                     <div style="background: rgba(255, 193, 7, 0.2); color: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin: 15px 0; text-align: center;">
-                        ⚠️ Could not load from Google Sheets: ${error.message}<br>
+                        Could not load from Google Sheets: ${error.message}<br>
                         <small style="opacity: 0.8;">Showing ${fallbackData.length} sample rules instead.</small>
                     </div>
                 `;
@@ -535,14 +510,10 @@
         }
 
         function createFilters() {
-            console.log('🔍 Creating filters with static values');
-            
             // Static filter values as defined
             const areas = ['all', 'people', 'self', 'business'];
             const disciplines = ['all', 'perception', 'will', 'action'];
             const skills = ['all', 'communication', 'teamwork', 'analytical skills', 'empathy', 'work ethic', 'leadership', 'self-management'];
-
-            console.log('📊 Filter options:', { areas, disciplines, skills });
 
             document.getElementById('areaFilters').innerHTML = areas.map(area => 
                 `<button class="filter-btn ${area === 'all' ? 'active' : ''}" onclick="filterByArea('${area}')">
@@ -684,19 +655,36 @@
                 noResults.style.display = 'none';
                 
                 grid.innerHTML = filteredRules.map((rule, index) => {
-                    const areas = rule.area.split(';').map(a => a.trim());
-                    const areaTag = areas[0];
+                    // Debug: Log what we're trying to render
+                    if (index < 3) {
+                        console.log(`🎨 Rendering rule ${index}:`, {
+                            title: rule.title,
+                            area: rule.area,
+                            discipline: rule.discipline,
+                            skill: rule.skill
+                        });
+                    }
+                    
+                    // Handle area - can be multiple values
+                    const areas = rule.area ? rule.area.split(';').map(a => a.trim()) : ['Unknown'];
+                    const areaTag = areas[0] || 'Unknown';
+                    
+                    // Handle discipline - should be single value
+                    const discipline = rule.discipline ? rule.discipline.trim() : 'Unknown';
+                    
+                    // Handle skill - should be single value
+                    const skill = rule.skill ? rule.skill.trim() : 'Unknown';
                     
                     return `
                         <div class="rule-card">
                             <div class="tags-container">
                                 <span class="tag area">${areaTag}</span>
-                                <span class="tag discipline">${rule.discipline}</span>
-                                <span class="tag skill">${rule.skill}</span>
+                                <span class="tag discipline">${discipline}</span>
+                                <span class="tag skill">${skill}</span>
                             </div>
-                            <h3 class="rule-title">${rule.title}</h3>
+                            <h3 class="rule-title">${rule.title || 'Untitled'}</h3>
                             <div class="rule-description" id="desc-${index}">
-                                ${rule.fullDescription}
+                                ${rule.fullDescription || 'No description available.'}
                             </div>
                             <button class="read-more-btn" onclick="toggle(${index})" id="btn-${index}">
                                 Read More
