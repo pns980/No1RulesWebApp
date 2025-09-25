@@ -478,17 +478,27 @@
                 console.log('📊 Received data:', data);
                 
                 if (Array.isArray(data) && data.length > 0) {
+                    // Debug: Log the first few items to see the actual structure
+                    console.log('🔍 First 3 data items:', data.slice(0, 3));
+                    console.log('🔑 Keys in first item:', Object.keys(data[0]));
+                    
                     // Validate data structure
                     const requiredFields = ['title', 'fullDescription', 'area', 'discipline', 'skill'];
                     const firstRule = data[0];
                     const hasRequiredFields = requiredFields.every(field => field in firstRule);
                     
                     if (!hasRequiredFields) {
+                        console.error('❌ Missing fields. Available fields:', Object.keys(firstRule));
                         throw new Error(`Missing required fields in data. Expected: ${requiredFields.join(', ')}`);
                     }
 
                     rulesData = data;
                     console.log(`✅ Successfully loaded ${data.length} rules`);
+                    
+                    // Debug: Show some sample values for each field
+                    console.log('📋 Sample areas:', data.slice(0, 5).map(r => r.area));
+                    console.log('📋 Sample disciplines:', data.slice(0, 5).map(r => r.discipline));
+                    console.log('📋 Sample skills:', data.slice(0, 5).map(r => r.skill));
                     
                     document.getElementById('stats').innerHTML = `
                         <div style="background: rgba(40, 167, 69, 0.2); color: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; margin: 15px 0; text-align: center;">
@@ -598,26 +608,66 @@
         function applyFilters() {
             const searchTerm = document.getElementById('searchBox').value.toLowerCase();
             
+            console.log('🔍 Applying filters:', { 
+                search: searchTerm, 
+                area: activeFilters.area, 
+                discipline: activeFilters.discipline, 
+                skill: activeFilters.skill 
+            });
+            
             filteredRules = rulesData.filter(rule => {
                 const matchesSearch = !searchTerm || 
                     rule.title.toLowerCase().includes(searchTerm) || 
                     rule.fullDescription.toLowerCase().includes(searchTerm);
 
+                // Debug log for first few items
+                if (rulesData.indexOf(rule) < 3) {
+                    console.log(`🔍 Rule ${rulesData.indexOf(rule)}:`, {
+                        title: rule.title,
+                        area: rule.area,
+                        discipline: rule.discipline,
+                        skill: rule.skill
+                    });
+                }
+
                 // Area can have multiple values separated by semicolons
-                const matchesArea = activeFilters.area === 'all' || 
-                    rule.area.toLowerCase().split(';').some(area => area.trim() === activeFilters.area);
+                let matchesArea = activeFilters.area === 'all';
+                if (!matchesArea && rule.area) {
+                    const ruleAreas = rule.area.toLowerCase().split(';').map(a => a.trim());
+                    matchesArea = ruleAreas.includes(activeFilters.area.toLowerCase());
+                    console.log(`Area check: ${activeFilters.area} in [${ruleAreas.join(', ')}] = ${matchesArea}`);
+                }
 
                 // Discipline is a single value
-                const matchesDiscipline = activeFilters.discipline === 'all' ||
-                    rule.discipline.toLowerCase().trim() === activeFilters.discipline;
+                let matchesDiscipline = activeFilters.discipline === 'all';
+                if (!matchesDiscipline && rule.discipline) {
+                    matchesDiscipline = rule.discipline.toLowerCase().trim() === activeFilters.discipline.toLowerCase();
+                    console.log(`Discipline check: "${rule.discipline.toLowerCase().trim()}" === "${activeFilters.discipline.toLowerCase()}" = ${matchesDiscipline}`);
+                }
 
                 // Skill is a single value
-                const matchesSkill = activeFilters.skill === 'all' ||
-                    rule.skill.toLowerCase().trim() === activeFilters.skill;
+                let matchesSkill = activeFilters.skill === 'all';
+                if (!matchesSkill && rule.skill) {
+                    matchesSkill = rule.skill.toLowerCase().trim() === activeFilters.skill.toLowerCase();
+                    console.log(`Skill check: "${rule.skill.toLowerCase().trim()}" === "${activeFilters.skill.toLowerCase()}" = ${matchesSkill}`);
+                }
                 
-                return matchesSearch && matchesArea && matchesDiscipline && matchesSkill;
+                const matches = matchesSearch && matchesArea && matchesDiscipline && matchesSkill;
+                
+                if (rulesData.indexOf(rule) < 3) {
+                    console.log(`Rule ${rulesData.indexOf(rule)} matches:`, {
+                        search: matchesSearch,
+                        area: matchesArea,
+                        discipline: matchesDiscipline,
+                        skill: matchesSkill,
+                        overall: matches
+                    });
+                }
+                
+                return matches;
             });
             
+            console.log(`📊 Filtered from ${rulesData.length} to ${filteredRules.length} rules`);
             render();
             updateStats();
         }
