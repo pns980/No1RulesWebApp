@@ -525,26 +525,12 @@
         }
 
         function createFilters() {
-            console.log('🔍 Creating filters from data:', rulesData.length, 'rules');
+            console.log('🔍 Creating filters with static values');
             
-            // Get unique values from actual data, ensuring they exist and are not empty
-            const areas = ['all', ...new Set(rulesData
-                .map(rule => rule.area)
-                .filter(area => area && area.trim())
-                .map(area => area.toLowerCase().trim())
-            )].sort();
-            
-            const disciplines = ['all', ...new Set(rulesData
-                .map(rule => rule.discipline)
-                .filter(discipline => discipline && discipline.trim())
-                .map(discipline => discipline.toLowerCase().trim())
-            )].sort();
-            
-            const skills = ['all', ...new Set(rulesData
-                .map(rule => rule.skill)
-                .filter(skill => skill && skill.trim())
-                .map(skill => skill.toLowerCase().trim())
-            )].sort();
+            // Static filter values as defined
+            const areas = ['all', 'people', 'self', 'business'];
+            const disciplines = ['all', 'perception', 'will', 'action'];
+            const skills = ['all', 'communication', 'teamwork', 'analytical skills', 'empathy', 'work ethic', 'leadership', 'self-management'];
 
             console.log('📊 Filter options:', { areas, disciplines, skills });
 
@@ -593,7 +579,8 @@
             const container = document.getElementById(containerId);
             container.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.textContent.toLowerCase().includes(activeValue === 'all' ? 'all' : activeValue.toLowerCase())) {
+                const btnValue = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                if (btnValue === activeValue) {
                     btn.classList.add('active');
                 }
             });
@@ -616,14 +603,17 @@
                     rule.title.toLowerCase().includes(searchTerm) || 
                     rule.fullDescription.toLowerCase().includes(searchTerm);
 
+                // Area can have multiple values separated by semicolons
                 const matchesArea = activeFilters.area === 'all' || 
-                    rule.area.toLowerCase().includes(activeFilters.area.toLowerCase());
+                    rule.area.toLowerCase().split(';').some(area => area.trim() === activeFilters.area);
 
+                // Discipline is a single value
                 const matchesDiscipline = activeFilters.discipline === 'all' ||
-                    rule.discipline.toLowerCase() === activeFilters.discipline.toLowerCase();
+                    rule.discipline.toLowerCase().trim() === activeFilters.discipline;
 
+                // Skill is a single value
                 const matchesSkill = activeFilters.skill === 'all' ||
-                    rule.skill.toLowerCase() === activeFilters.skill.toLowerCase();
+                    rule.skill.toLowerCase().trim() === activeFilters.skill;
                 
                 return matchesSearch && matchesArea && matchesDiscipline && matchesSkill;
             });
