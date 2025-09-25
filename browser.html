@@ -525,28 +525,50 @@
         }
 
         function createFilters() {
-            // Get unique values from actual data
-            const areas = ['all', ...new Set(rulesData.map(rule => rule.area.toLowerCase()))];
-            const disciplines = ['all', ...new Set(rulesData.map(rule => rule.discipline.toLowerCase()))];
-            const skills = ['all', ...new Set(rulesData.map(rule => rule.skill.toLowerCase()))];
+            console.log('🔍 Creating filters from data:', rulesData.length, 'rules');
+            
+            // Get unique values from actual data, ensuring they exist and are not empty
+            const areas = ['all', ...new Set(rulesData
+                .map(rule => rule.area)
+                .filter(area => area && area.trim())
+                .map(area => area.toLowerCase().trim())
+            )].sort();
+            
+            const disciplines = ['all', ...new Set(rulesData
+                .map(rule => rule.discipline)
+                .filter(discipline => discipline && discipline.trim())
+                .map(discipline => discipline.toLowerCase().trim())
+            )].sort();
+            
+            const skills = ['all', ...new Set(rulesData
+                .map(rule => rule.skill)
+                .filter(skill => skill && skill.trim())
+                .map(skill => skill.toLowerCase().trim())
+            )].sort();
+
+            console.log('📊 Filter options:', { areas, disciplines, skills });
 
             document.getElementById('areaFilters').innerHTML = areas.map(area => 
                 `<button class="filter-btn ${area === 'all' ? 'active' : ''}" onclick="filterByArea('${area}')">
-                    ${area === 'all' ? 'All Areas' : area}
+                    ${area === 'all' ? 'All Areas' : capitalizeFirst(area)}
                 </button>`
             ).join('');
 
             document.getElementById('disciplineFilters').innerHTML = disciplines.map(discipline => 
                 `<button class="filter-btn ${discipline === 'all' ? 'active' : ''}" onclick="filterByDiscipline('${discipline}')">
-                    ${discipline === 'all' ? 'All Disciplines' : discipline}
+                    ${discipline === 'all' ? 'All Disciplines' : capitalizeFirst(discipline)}
                 </button>`
             ).join('');
 
             document.getElementById('skillFilters').innerHTML = skills.map(skill => 
                 `<button class="filter-btn ${skill === 'all' ? 'active' : ''}" onclick="filterBySkill('${skill}')">
-                    ${skill === 'all' ? 'All Skills' : skill}
+                    ${skill === 'all' ? 'All Skills' : capitalizeFirst(skill)}
                 </button>`
             ).join('');
+        }
+
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
         function filterByArea(area) {
