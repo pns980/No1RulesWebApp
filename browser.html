@@ -413,20 +413,16 @@
 
         function loadDataWithJSONP() {
             return new Promise((resolve, reject) => {
-                console.log('📡 Loading data via JSONP from:', SCRIPT_URL);
-                
                 const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
                 const timestamp = Date.now();
                 
                 const timeoutId = setTimeout(() => {
-                    console.error('⏰ JSONP request timeout');
                     cleanup();
                     reject(new Error('Request timeout - please check your internet connection'));
                 }, 15000);
                 
                 // Define the global callback function
                 window[callbackName] = function(data) {
-                    console.log('✅ JSONP callback received data:', data);
                     cleanup();
                     resolve(data);
                 };
@@ -444,17 +440,14 @@
                 const script = document.createElement('script');
                 
                 script.onerror = function(error) {
-                    console.error('❌ JSONP script loading failed:', error);
                     cleanup();
                     reject(new Error('Failed to load data from Google Sheets'));
                 };
                 
                 script.onload = function() {
-                    console.log('📜 JSONP script loaded successfully');
                     // Callback should fire automatically, but add a backup timeout
                     setTimeout(() => {
                         if (window[callbackName]) {
-                            console.warn('⚠️  Callback not fired, timing out...');
                             cleanup();
                             reject(new Error('Callback not received from server'));
                         }
@@ -462,8 +455,6 @@
                 };
                 
                 const scriptUrl = `${SCRIPT_URL}?callback=${callbackName}&_=${timestamp}`;
-                console.log('🔗 Loading script:', scriptUrl);
-                
                 script.src = scriptUrl;
                 document.head.appendChild(script);
             });
@@ -579,66 +570,33 @@
         function applyFilters() {
             const searchTerm = document.getElementById('searchBox').value.toLowerCase();
             
-            console.log('🔍 Applying filters:', { 
-                search: searchTerm, 
-                area: activeFilters.area, 
-                discipline: activeFilters.discipline, 
-                skill: activeFilters.skill 
-            });
-            
             filteredRules = rulesData.filter(rule => {
                 const matchesSearch = !searchTerm || 
                     rule.title.toLowerCase().includes(searchTerm) || 
                     rule.fullDescription.toLowerCase().includes(searchTerm);
-
-                // Debug log for first few items
-                if (rulesData.indexOf(rule) < 3) {
-                    console.log(`🔍 Rule ${rulesData.indexOf(rule)}:`, {
-                        title: rule.title,
-                        area: rule.area,
-                        discipline: rule.discipline,
-                        skill: rule.skill
-                    });
-                }
 
                 // Area can have multiple values separated by semicolons
                 let matchesArea = activeFilters.area === 'all';
                 if (!matchesArea && rule.area) {
                     const ruleAreas = rule.area.toLowerCase().split(';').map(a => a.trim());
                     matchesArea = ruleAreas.includes(activeFilters.area.toLowerCase());
-                    console.log(`Area check: ${activeFilters.area} in [${ruleAreas.join(', ')}] = ${matchesArea}`);
                 }
 
                 // Discipline is a single value
                 let matchesDiscipline = activeFilters.discipline === 'all';
                 if (!matchesDiscipline && rule.discipline) {
                     matchesDiscipline = rule.discipline.toLowerCase().trim() === activeFilters.discipline.toLowerCase();
-                    console.log(`Discipline check: "${rule.discipline.toLowerCase().trim()}" === "${activeFilters.discipline.toLowerCase()}" = ${matchesDiscipline}`);
                 }
 
                 // Skill is a single value
                 let matchesSkill = activeFilters.skill === 'all';
                 if (!matchesSkill && rule.skill) {
                     matchesSkill = rule.skill.toLowerCase().trim() === activeFilters.skill.toLowerCase();
-                    console.log(`Skill check: "${rule.skill.toLowerCase().trim()}" === "${activeFilters.skill.toLowerCase()}" = ${matchesSkill}`);
                 }
                 
-                const matches = matchesSearch && matchesArea && matchesDiscipline && matchesSkill;
-                
-                if (rulesData.indexOf(rule) < 3) {
-                    console.log(`Rule ${rulesData.indexOf(rule)} matches:`, {
-                        search: matchesSearch,
-                        area: matchesArea,
-                        discipline: matchesDiscipline,
-                        skill: matchesSkill,
-                        overall: matches
-                    });
-                }
-                
-                return matches;
+                return matchesSearch && matchesArea && matchesDiscipline && matchesSkill;
             });
             
-            console.log(`📊 Filtered from ${rulesData.length} to ${filteredRules.length} rules`);
             render();
             updateStats();
         }
@@ -655,19 +613,13 @@
                 noResults.style.display = 'none';
                 
                 grid.innerHTML = filteredRules.map((rule, index) => {
-                    // Debug: Log what we're trying to render
-                    if (index < 3) {
-                        console.log(`🎨 Rendering rule ${index}:`, {
-                            title: rule.title,
-                            area: rule.area,
-                            discipline: rule.discipline,
-                            skill: rule.skill
-                        });
-                    }
+                    // Handle multiple areas separated by semicolons
+                    const areas = rule.area ? rule.area.split(';').map(a => a.trim()).filter(a => a) : ['Unknown'];
                     
-                    // Handle area - can be multiple values
-                    const areas = rule.area ? rule.area.split(';').map(a => a.trim()) : ['Unknown'];
-                    const areaTag = areas[0] || 'Unknown';
+                    // Generate separate area tags for each area
+                    const areaTagsHtml = areas.map(area => 
+                        `<span class="tag area">${area}</span>`
+                    ).join('');
                     
                     // Handle discipline - should be single value
                     const discipline = rule.discipline ? rule.discipline.trim() : 'Unknown';
@@ -678,7 +630,7 @@
                     return `
                         <div class="rule-card">
                             <div class="tags-container">
-                                <span class="tag area">${areaTag}</span>
+                                ${areaTagsHtml}
                                 <span class="tag discipline">${discipline}</span>
                                 <span class="tag skill">${skill}</span>
                             </div>
