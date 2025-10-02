@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empathy in Business Workshop</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            padding: 5vh 6vw;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide-container.active {
+            display: flex;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 3vh;
+            right: 4vw;
+            font-size: 1.2vw;
+            color: #999;
+        }
+
+        /* Slide backgrounds */
+        .slide-1 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; }
+        .slide-2 { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; }
+        .slide-3 { background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; }
+        .slide-4 { background: linear-gradient(135deg, #ff7979 0%, #ff6348 100%); color: white; }
+        .slide-5 { background: linear-gradient(135deg, #b8c965 0%, #9db54a 100%); color: white; }
+        .slide-6 { background: linear-gradient(135deg, #a8b858 0%, #8fa03d 100%); color: white; }
+        .slide-7 { background: linear-gradient(135deg, #fdcb6e 0%, #f39c12 100%); color: white; }
+        .slide-8 { background: linear-gradient(135deg, #ff6b6b 0%, #c44569 100%); color: white; }
+        .slide-9 { background: linear-gradient(135deg, #ffa07a 0%, #ff7f50 100%); color: white; }
+        .slide-10 { background: linear-gradient(135deg, #afc157 0%, #98a845 100%); color: white; }
+        .slide-11 { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white; }
+        .slide-12 { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; }
+
+        h1 {
+            font-size: 5vw;
+            font-weight: 700;
+            margin-bottom: 2vh;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 4vw;
+            font-weight: 700;
+            margin-bottom: 3vh;
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-size: 3vw;
+            font-weight: 600;
+            margin-bottom: 2vh;
+            line-height: 1.3;
+        }
+
+        .subtitle {
+            font-size: 2.5vw;
+            font-weight: 300;
+            margin-top: 2vh;
+            opacity: 0.9;
+        }
+
+        ul {
+            list-style: none;
+            margin-top: 2vh;
+        }
+
+        li[data-animate] {
+            font-size: 2.6vw;
+            margin-bottom: 1.5vh;
+            font-weight: 400;
+            line-height: 1.4;
+            padding: 1.5vh 2vw;
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1vw;
+        }
+
+        li[data-animate]:before {
+            content: "";
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2vw;
+            margin-top: 3vh;
+        }
+
+        .kpi-item[data-animate] {
+            background: rgba(255,255,255,0.15);
+            padding: 2vh 2vw;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .kpi-label {
+            font-size: 1.6vw;
+            opacity: 0.9;
+            margin-bottom: 1vh;
+        }
+
+        .kpi-value {
+            font-size: 3.2vw;
+            font-weight: 700;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 2vh;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        button {
+            padding: 1vh 2vw;
+            font-size: 1.2vw;
+            border: none;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #ee5a6f;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .center-text {
+            text-align: center;
+        }
+
+        .emphasis {
+            font-weight: 700;
+        }
+
+        /* Animation styles - elements start hidden */
+        [data-animate] {
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        [data-animate][data-visible="true"] {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .kpi-item[data-animate] {
+            transform: translateY(20px);
+        }
+
+        .kpi-item[data-animate][data-visible="true"] {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title -->
+    <div class="slide-container active slide-1">
+        <h1>Емпатията като<br>конкурентно предимство</h1>
+        <div class="subtitle">Петар Шварц, съосновател @ Melon</div>
+        <div class="slide-number">1</div>
+    </div>
+
+    <!-- Slide 2: About Melon -->
+    <div class="slide-container slide-2">
+        <h2>Melon</h2>
+        <div class="subtitle" style="margin-bottom: 40px;">Компания за разработка на софтуер с офиси в България, Македония и Косово.<br><br>5 → 400+ служители за ~20 години</div>
+        <div class="kpi-grid">
+            <div class="kpi-item" data-animate>
+                <div class="kpi-label">Годишни повтарящи се приходи</div>
+                <div class="kpi-value">€15M+</div>
+            </div>
+            <div class="kpi-item" data-animate>
+                <div class="kpi-label">Ангажираност на екипа</div>
+                <div class="kpi-value">4.3/5.0</div>
+            </div>
+            <div class="kpi-item" data-animate>
+                <div class="kpi-label">Приходи от съществуващи клиенти и препоръки</div>
+                <div class="kpi-value">80%</div>
+            </div>
+            <div class="kpi-item" data-animate>
+                <div class="kpi-label">EBITDA</div>
+                <div class="kpi-value">15%+</div>
+            </div>
+        </div>
+        <div class="slide-number">2</div>
+    </div>
+
+    <!-- Slide 3: Philosophy -->
+    <div class="slide-container slide-3">
+        <h2>Нашата философия</h2>
+        <ul>
+            <li data-animate>Be smart, be nice, make things happen</li>
+            <li data-animate>Хората на първо място</li>
+            <li data-animate>Познавай своите ненарушими принципи</li>
+            <li data-animate>Прави правилното, дори да настъпиш някой</li>
+        </ul>
+        <div class="slide-number">3</div>
+    </div>
+
+    <!-- Slide 4: Why Learn? -->
+    <div class="slide-container slide-4">
+        <h2>Защо да се научим<br>да гледаме от чужда гледна точка?</h2>
+        <div class="slide-number">4</div>
+    </div>
+
+    <!-- Slide 5: Clients -->
+    <div class="slide-container slide-5">
+        <h3>Клиенти</h3>
+        <ul>
+            <li data-animate>Влизане в положение в критични моменти</li>
+            <li data-animate>Слушай повече, отколкото говориш</li>
+            <li data-animate>Клиентите идват с решения, но ти трябва да се тревожиш за основния проблем</li>
+        </ul>
+        <div class="slide-number">5</div>
+    </div>
+
+    <!-- Slide 6: People & Teams -->
+    <div class="slide-container slide-6">
+        <h3>Хора и екипи</h3>
+        <ul>
+            <li data-animate>Емпатия и процес, не сочене с пръст</li>
+            <li data-animate>Пригоди обувката към крака</li>
+            <li data-animate>Разбиране на културния контекст</li>
+            <li data-animate>Разпространяване на "собственическия" манталитет</li>
+        </ul>
+        <div class="slide-number">6</div>
+    </div>
+
+    <!-- Slide 7: Self-Awareness -->
+    <div class="slide-container slide-7">
+        <h3>Самосъзнание</h3>
+        <ul>
+            <li data-animate>Как другите те възприемат има значение</li>
+            <li data-animate>Съчетай впечатлението си с тяхната реалност</li>
+            <li data-animate>По-добро разбиране на реакциите</li>
+        </ul>
+        <div class="slide-number">7</div>
+    </div>
+
+    <!-- Slide 8: Frustrations -->
+    <div class="slide-container slide-8">
+        <h2>Защо не е<br>лесно?</h2>
+        <div class="slide-number">8</div>
+    </div>
+
+    <!-- Slide 9: The Hard Parts -->
+    <div class="slide-container slide-9">
+        <h3>Трудните части</h3>
+        <ul>
+            <li data-animate>Ограничава твоята автономност</li>
+            <li data-animate>Очаквания към другите по твоите стандарти</li>
+            <li data-animate>Развиване на умения изисква дискомфорт</li>
+            <li data-animate>Добротата може да изглежда като слабост</li>
+        </ul>
+        <div class="slide-number">9</div>
+    </div>
+
+    <!-- Slide 10: Benefits -->
+    <div class="slide-container slide-10">
+        <h2>Защо да изберем<br>емпатията?</h2>
+        <div class="slide-number">10</div>
+    </div>
+
+    <!-- Slide 11: The Payoff -->
+    <div class="slide-container slide-11">
+        <h3>Ползите</h3>
+        <ul>
+            <li data-animate>Открита комуникация = по-малко изненади</li>
+            <li data-animate>Подлага разбиранията ти на изпитание</li>
+            <li data-animate>Сътрудничество > Доминация</li>
+            <li data-animate>Баланс между данни и човечност</li>
+            <li data-animate>Умение приложимо навсякъде</li>
+        </ul>
+        <div class="slide-number">11</div>
+    </div>
+
+    <!-- Slide 12: Thank You -->
+    <div class="slide-container slide-12">
+        <h1 class="center-text">Благодаря!</h1>
+        <div class="slide-number">12</div>
+    </div>
+
+    <div class="controls">
+        <button id="prev">← Previous</button>
+        <button id="next">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        let currentItem = 0;
+        const slides = document.querySelectorAll('.slide-container');
+        const prevBtn = document.getElementById('prev');
+        const nextBtn = document.getElementById('next');
+
+        function getAnimatableItems(slide) {
+            return Array.from(slide.querySelectorAll('[data-animate]'));
+        }
+
+        function hideAllItems() {
+            // Hide all animatable items across all slides
+            document.querySelectorAll('[data-animate]').forEach(item => {
+                item.setAttribute('data-visible', 'false');
+            });
+        }
+
+        function showSlide(slideIndex, itemIndex) {
+            // Hide all slides
+            slides.forEach(slide => slide.classList.remove('active'));
+            
+            // Show current slide
+            slides[slideIndex].classList.add('active');
+            
+            // Get items for this slide
+            const items = getAnimatableItems(slides[slideIndex]);
+            
+            // Hide all items on this slide first
+            items.forEach(item => {
+                item.setAttribute('data-visible', 'false');
+            });
+            
+            // Show items up to itemIndex
+            for (let i = 0; i < itemIndex; i++) {
+                if (items[i]) {
+                    items[i].setAttribute('data-visible', 'true');
+                }
+            }
+            
+            // Update button states
+            prevBtn.disabled = slideIndex === 0 && itemIndex === 0;
+            nextBtn.disabled = slideIndex === slides.length - 1 && itemIndex >= items.length;
+        }
+
+        function nextAction() {
+            const items = getAnimatableItems(slides[currentSlide]);
+            
+            if (currentItem < items.length) {
+                // Show next item
+                currentItem++;
+                showSlide(currentSlide, currentItem);
+            } else if (currentSlide < slides.length - 1) {
+                // Move to next slide
+                currentSlide++;
+                currentItem = 0;
+                showSlide(currentSlide, currentItem);
+            }
+        }
+
+        function prevAction() {
+            const items = getAnimatableItems(slides[currentSlide]);
+            
+            if (currentItem > 0) {
+                // Hide current item
+                currentItem--;
+                showSlide(currentSlide, currentItem);
+            } else if (currentSlide > 0) {
+                // Move to previous slide
+                currentSlide--;
+                const prevItems = getAnimatableItems(slides[currentSlide]);
+                currentItem = prevItems.length;
+                showSlide(currentSlide, currentItem);
+            }
+        }
+
+        prevBtn.addEventListener('click', prevAction);
+        nextBtn.addEventListener('click', nextAction);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                prevAction();
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                nextAction();
+            }
+        });
+
+        // Click anywhere to advance
+        document.addEventListener('click', (e) => {
+            nextAction();
+        });
+
+        // Initialize
+        hideAllItems();
+        showSlide(0, 0);
+    </script>
+</body>
+</html>
