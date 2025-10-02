@@ -33,10 +33,13 @@
             flex-direction: column;
             justify-content: center;
             position: relative;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
         }
 
         .slide-container.active {
             display: flex;
+            opacity: 1;
         }
 
         .slide-number {
@@ -347,16 +350,51 @@
         }
 
         function showSlide(slideIndex, itemIndex) {
-            // Hide all slides
-            slides.forEach(slide => slide.classList.remove('active'));
-            
-            // Show current slide
-            slides[slideIndex].classList.add('active');
-            
-            // Get items for this slide
+            // Get items for this slide first
             const items = getAnimatableItems(slides[slideIndex]);
             
-            // Hide all items on this slide first
+            // Check if we're changing slides
+            const currentActiveSlide = document.querySelector('.slide-container.active');
+            const changingSlides = currentActiveSlide && currentActiveSlide !== slides[slideIndex];
+            
+            if (changingSlides) {
+                // Prepare new slide (invisible but displayed)
+                slides[slideIndex].style.display = 'flex';
+                slides[slideIndex].style.opacity = '0';
+                slides[slideIndex].classList.add('active');
+                
+                // Trigger reflow
+                slides[slideIndex].offsetHeight;
+                
+                // Start fading out old slide and fading in new slide simultaneously
+                currentActiveSlide.style.opacity = '0';
+                slides[slideIndex].style.opacity = '1';
+                
+                setTimeout(() => {
+                    // Clean up old slide after transition
+                    currentActiveSlide.classList.remove('active');
+                    currentActiveSlide.style.display = 'none';
+                }, 500);
+                
+                // Update items immediately
+                updateItems(items, itemIndex);
+            } else {
+                // Same slide or first load - just update items
+                if (!currentActiveSlide) {
+                    slides[slideIndex].style.display = 'flex';
+                    slides[slideIndex].classList.add('active');
+                    slides[slideIndex].style.opacity = '1';
+                }
+                updateItems(items, itemIndex);
+            }
+            
+            // Update button states
+            prevBtn.disabled = slideIndex === 0 && itemIndex === 0;
+            nextBtn.disabled = slideIndex === slides.length - 1 && itemIndex >= items.length;
+        }
+        
+        function updateItems(items, itemIndex) {
+            // Hide all items first
             items.forEach(item => {
                 item.setAttribute('data-visible', 'false');
             });
@@ -367,10 +405,6 @@
                     items[i].setAttribute('data-visible', 'true');
                 }
             }
-            
-            // Update button states
-            prevBtn.disabled = slideIndex === 0 && itemIndex === 0;
-            nextBtn.disabled = slideIndex === slides.length - 1 && itemIndex >= items.length;
         }
 
         function nextAction() {
